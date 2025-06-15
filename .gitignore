@@ -32,5 +32,4 @@ yarn-error.log*
 *.swo
 
 #others
-/backend/scripts
-/backend/createAdminUser.js
+
