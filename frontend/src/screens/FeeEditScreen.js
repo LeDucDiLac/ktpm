@@ -1,275 +1,306 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Form, Button, Row, Col } from 'react-bootstrap';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import Message from '../components/Message';
-import Loader from '../components/Loader';
-import FormContainer from '../components/FormContainer';
-import AuthContext from '../context/AuthContext';
-import axios from 'axios';
+import React, { useState, useEffect, useContext } from "react";
+import { Form, Button, Row, Col, Card } from "react-bootstrap";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import Message from "../components/Message";
+import Loader from "../components/Loader";
+import AuthContext from "../context/AuthContext";
+import axios from "axios";
 
 const FeeEditScreen = () => {
   const { id } = useParams();
-  const isEditMode = !!id;
-  
-  const [feeCode, setFeeCode] = useState('');
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [feeType, setFeeType] = useState('mandatory');
-  const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [active, setActive] = useState(true);
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [validationErrors, setValidationErrors] = useState({});
-  
   const navigate = useNavigate();
   const { userInfo } = useContext(AuthContext);
-  
+
+  const [formData, setFormData] = useState({
+    feeCode: "",
+    name: "",
+    amount: "",
+    feeType: "mandatory",
+    description: "",
+    startDate: "",
+    endDate: "",
+    active: true,
+  });
+
+  const [status, setStatus] = useState({
+    loading: false,
+    error: "",
+    success: false,
+    validationErrors: {},
+  });
+
+  const feeTypes = [
+    { value: "mandatory", label: "Bắt buộc", icon: "exclamation-circle" },
+    { value: "service", label: "Dịch vụ", icon: "concierge-bell" },
+    { value: "maintenance", label: "Bảo trì", icon: "tools" },
+    { value: "water", label: "Nước", icon: "water" },
+    { value: "electricity", label: "Điện", icon: "bolt" },
+    { value: "parking", label: "Đỗ xe", icon: "parking" },
+    { value: "internet", label: "Internet", icon: "wifi" },
+    { value: "security", label: "An ninh", icon: "shield-alt" },
+    { value: "cleaning", label: "Vệ sinh", icon: "broom" },
+    { value: "contribution", label: "Đóng góp", icon: "hand-holding-usd" },
+    { value: "other", label: "Khác", icon: "ellipsis-h" },
+  ];
+
   useEffect(() => {
-    if (isEditMode) {
-      fetchFeeDetails();
-    }
+    if (id) fetchFeeDetails();
   }, [id]);
-  
+
   const fetchFeeDetails = async () => {
     try {
-      setLoading(true);
-      
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-      
-      const { data } = await axios.get(`/api/fees/${id}`, config);
-      
-      setFeeCode(data.feeCode);
-      setName(data.name);
-      setAmount(data.amount || '');
-      setFeeType(data.feeType || 'mandatory');
-      setDescription(data.description || '');
-      
-      if (data.startDate) {
-        const startDateObj = new Date(data.startDate);
-        setStartDate(startDateObj.toISOString().split('T')[0]);
-      }
-      
-      if (data.endDate) {
-        const endDateObj = new Date(data.endDate);
-        setEndDate(endDateObj.toISOString().split('T')[0]);
-      }
-      
-      setActive(data.active);
-      
-      setLoading(false);
+      setStatus((prev) => ({ ...prev, loading: true, error: "" }));
+      const { data } = await axios.get(`/api/fees/${id}`, {
+        headers: { Authorization: `Bearer ${userInfo.token}` },
+      });
+
+      setFormData({
+        feeCode: data.feeCode,
+        name: data.name,
+        amount: data.amount || "",
+        feeType: data.feeType || "mandatory",
+        description: data.description || "",
+        startDate: data.startDate
+          ? new Date(data.startDate).toISOString().split("T")[0]
+          : "",
+        endDate: data.endDate
+          ? new Date(data.endDate).toISOString().split("T")[0]
+          : "",
+        active: data.active,
+      });
     } catch (error) {
-      setError(
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : 'Không thể tải thông tin phí'
-      );
-      setLoading(false);
+      setStatus((prev) => ({
+        ...prev,
+        error: error.response?.data?.message || "Không thể tải thông tin phí",
+      }));
+    } finally {
+      setStatus((prev) => ({ ...prev, loading: false }));
     }
   };
-  
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
   const validateForm = () => {
     const errors = {};
-    
-    if (!feeCode) errors.feeCode = 'Mã phí là bắt buộc';
-    if (!name) errors.name = 'Tên phí là bắt buộc';
-    if (!amount || amount <= 0) errors.amount = 'Số tiền phải lớn hơn 0';
-    
-    setValidationErrors(errors);
-    
+    if (!formData.feeCode) errors.feeCode = "Mã phí là bắt buộc";
+    if (!formData.name) errors.name = "Tên phí là bắt buộc";
+    if (!formData.amount || formData.amount <= 0)
+      errors.amount = "Số tiền phải lớn hơn 0";
+
+    setStatus((prev) => ({ ...prev, validationErrors: errors }));
     return Object.keys(errors).length === 0;
   };
-  
-  const submitHandler = async (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-    
+
     try {
-      setLoading(true);
-      setError('');
-      setSuccess(false);
-      
+      setStatus((prev) => ({
+        ...prev,
+        loading: true,
+        error: "",
+        success: false,
+      }));
+
       const config = {
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${userInfo.token}`,
         },
       };
-      
-      const feeData = {
-        feeCode,
-        name,
-        amount: parseFloat(amount),
-        feeType,
-        description,
-        startDate: startDate || null,
-        endDate: endDate || null,
-        active
+
+      const submitData = {
+        ...formData,
+        amount: parseFloat(formData.amount),
       };
-      
-      if (isEditMode) {
-        await axios.put(`/api/fees/${id}`, feeData, config);
+
+      if (id) {
+        await axios.put(`/api/fees/${id}`, submitData, config);
       } else {
-        await axios.post('/api/fees', feeData, config);
+        await axios.post("/api/fees", submitData, config);
       }
-      
-      setSuccess(true);
-      setTimeout(() => {
-        navigate('/fees');
-      }, 1500);
+
+      setStatus((prev) => ({ ...prev, success: true }));
+      setTimeout(() => navigate("/fees"), 1500);
     } catch (error) {
-      setError(
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : `Không thể ${isEditMode ? 'cập nhật' : 'tạo'} phí`
-      );
+      setStatus((prev) => ({
+        ...prev,
+        error:
+          error.response?.data?.message ||
+          `Không thể ${id ? "cập nhật" : "tạo"} phí`,
+      }));
     } finally {
-      setLoading(false);
+      setStatus((prev) => ({ ...prev, loading: false }));
     }
   };
-  
+
   return (
-    <>
-      <Link to='/fees' className='btn btn-light my-3'>
-        <i className="fas fa-arrow-left"></i> Quay lại Phí
+    <div className="py-3">
+      <Link to="/fees" className="btn btn-dark mb-3">
+        <i className="fas fa-arrow-left me-2"></i>Quay lại
       </Link>
-      
-      <FormContainer>
-        <h1>{isEditMode ? 'Chỉnh Sửa Phí' : 'Tạo Phí Mới'}</h1>
-        
-        {error && <Message variant='danger'>{error}</Message>}
-        {success && <Message variant='success'>{isEditMode ? 'Phí đã được cập nhật' : 'Phí đã được tạo'}</Message>}
-        {loading && <Loader />}
-        
-        <Form onSubmit={submitHandler}>
-          <Form.Group controlId='feeCode' className='mb-3'>
-            <Form.Label>Mã Phí</Form.Label>
-            <Form.Control
-              type='text'
-              placeholder='Nhập mã phí'
-              value={feeCode}
-              onChange={(e) => setFeeCode(e.target.value)}
-              isInvalid={!!validationErrors.feeCode}
-              required
-            />
-            <Form.Control.Feedback type='invalid'>
-              {validationErrors.feeCode}
-            </Form.Control.Feedback>
-          </Form.Group>
-          
-          <Form.Group controlId='name' className='mb-3'>
-            <Form.Label>Tên Phí</Form.Label>
-            <Form.Control
-              type='text'
-              placeholder='Nhập tên phí'
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              isInvalid={!!validationErrors.name}
-              required
-            />
-            <Form.Control.Feedback type='invalid'>
-              {validationErrors.name}
-            </Form.Control.Feedback>
-          </Form.Group>
-          
-          <Form.Group controlId='amount' className='mb-3'>
-            <Form.Label>Số Tiền</Form.Label>
-            <Form.Control
-              type='number'
-              placeholder='Nhập số tiền'
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              isInvalid={!!validationErrors.amount}
-              required
-              min="0"
-              step="0.01"
-            />
-            <Form.Control.Feedback type='invalid'>
-              {validationErrors.amount}
-            </Form.Control.Feedback>
-          </Form.Group>
-          
-          <Form.Group controlId='feeType' className='mb-3'>
-            <Form.Label>Loại Phí</Form.Label>
-            <Form.Select
-              value={feeType}
-              onChange={(e) => setFeeType(e.target.value)}
-            >
-              <option value='mandatory'>Bắt buộc</option>
-              <option value='service'>Dịch vụ</option>
-              <option value='maintenance'>Bảo trì</option>
-              <option value='water'>Nước</option>
-              <option value='electricity'>Điện</option>
-              <option value='parking'>Đỗ xe</option>
-              <option value='internet'>Internet</option>
-              <option value='security'>An ninh</option>
-              <option value='cleaning'>Vệ sinh</option>
-              <option value='contribution'>Đóng góp</option>
-              <option value='other'>Khác</option>
-            </Form.Select>
-          </Form.Group>
-          
-          <Form.Group controlId='description' className='mb-3'>
-            <Form.Label>Mô Tả</Form.Label>
-            <Form.Control
-              as='textarea'
-              rows={3}
-              placeholder='Nhập mô tả (không bắt buộc)'
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </Form.Group>
-          
-          <Row>
-            <Col md={6}>
-              <Form.Group controlId='startDate' className='mb-3'>
-                <Form.Label>Ngày Bắt Đầu</Form.Label>
-                <Form.Control
-                  type='date'
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            
-            <Col md={6}>
-              <Form.Group controlId='endDate' className='mb-3'>
-                <Form.Label>Ngày Kết Thúc</Form.Label>
-                <Form.Control
-                  type='date'
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-          
-          {isEditMode && (
-            <Form.Group controlId='active' className='mb-3'>
-              <Form.Check
-                type='checkbox'
-                label='Hoạt động'
-                checked={active}
-                onChange={(e) => setActive(e.target.checked)}
+
+      <Card className="shadow-sm" style={{ background: "#1C1C1E" }}>
+        <Card.Header className="border-0 bg-transparent">
+          <h4 className="text-light mb-0">
+            {id ? "Chỉnh Sửa Phí" : "Tạo Phí Mới"}
+          </h4>
+        </Card.Header>
+
+        <Card.Body>
+          {status.error && <Message variant="danger">{status.error}</Message>}
+          {status.success && (
+            <Message variant="success">
+              {id ? "Phí đã được cập nhật" : "Phí đã được tạo"}
+            </Message>
+          )}
+          {status.loading && <Loader />}
+
+          <Form onSubmit={handleSubmit}>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Mã Phí</Form.Label>
+                  <Form.Control
+                    name="feeCode"
+                    value={formData.feeCode}
+                    onChange={handleInputChange}
+                    isInvalid={!!status.validationErrors.feeCode}
+                    placeholder="VD: PGX, PDV, ..."
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {status.validationErrors.feeCode}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Tên Phí</Form.Label>
+                  <Form.Control
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    isInvalid={!!status.validationErrors.name}
+                    placeholder="VD: Phí gửi xe, Phí dịch vụ, ..."
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {status.validationErrors.name}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Số Tiền</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    isInvalid={!!status.validationErrors.amount}
+                    min="0"
+                    step="1000"
+                    placeholder="VD: 100000"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {status.validationErrors.amount}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Loại Phí</Form.Label>
+                  <Form.Select
+                    name="feeType"
+                    value={formData.feeType}
+                    onChange={handleInputChange}
+                  >
+                    {feeTypes.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Mô Tả</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Thêm mô tả chi tiết về khoản phí..."
               />
             </Form.Group>
-          )}
-          
-          <Button type='submit' variant='primary' className='mt-3'>
-            {isEditMode ? 'Cập Nhật' : 'Tạo Mới'}
-          </Button>
-        </Form>
-      </FormContainer>
-    </>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Ngày Bắt Đầu</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="startDate"
+                    value={formData.startDate}
+                    onChange={handleInputChange}
+                  />
+                </Form.Group>
+              </Col>
+
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Ngày Kết Thúc</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="endDate"
+                    value={formData.endDate}
+                    onChange={handleInputChange}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {id && (
+              <Form.Group className="mb-3">
+                <Form.Check
+                  type="switch"
+                  name="active"
+                  label="Kích hoạt"
+                  checked={formData.active}
+                  onChange={handleInputChange}
+                />
+              </Form.Group>
+            )}
+
+            <div className="d-flex justify-content-end">
+              <Button
+                type="submit"
+                variant={id ? "info" : "success"}
+                className="px-4"
+              >
+                <i className={`fas fa-${id ? "save" : "plus"} me-2`}></i>
+                {id ? "Cập Nhật" : "Tạo Mới"}
+              </Button>
+            </div>
+          </Form>
+        </Card.Body>
+      </Card>
+    </div>
   );
 };
 
-export default FeeEditScreen; 
+export default FeeEditScreen;

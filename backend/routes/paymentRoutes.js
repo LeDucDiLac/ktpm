@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require("express");
 const {
   getPayments,
   getPaymentById,
@@ -7,33 +7,36 @@ const {
   getPaymentsByHousehold,
   getPaymentsByFee,
   searchPayments,
-  getHouseholdFeeStatus
-} = require('../controllers/paymentController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+  getHouseholdFeeStatus,
+  getPaymentStatusSummary,
+  getPaymentFeeTypeSummary,
+} = require("../controllers/paymentController");
+const { protect, authorize } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
 // All routes are protected
 router.use(protect);
 
-router.route('/')
+router.get("/status-summary", getPaymentStatusSummary);
+router.get("/fee-type-summary", getPaymentFeeTypeSummary);
+
+router
+  .route("/")
   .get(getPayments)
-  .post(authorize('admin', 'accountant'), createPayment);
+  .post(authorize("admin", "accountant"), createPayment);
 
-router.route('/search')
-  .get(searchPayments);
+router.route("/search").get(searchPayments);
 
-router.route('/household/:id')
-  .get(getPaymentsByHousehold);
+router.route("/household/:id").get(getPaymentsByHousehold);
 
-router.route('/household/:id/fee-status')
-  .get(getHouseholdFeeStatus);
+router.route("/household/:id/fee-status").get(getHouseholdFeeStatus);
 
-router.route('/fee/:id')
-  .get(getPaymentsByFee);
+router.route("/fee/:id").get(getPaymentsByFee);
 
-router.route('/:id')
+router
+  .route("/:id")
   .get(getPaymentById)
-  .put(authorize('admin', 'accountant'), updatePayment);
+  .put(authorize("admin", "accountant"), updatePayment);
 
-module.exports = router; 
+module.exports = router;

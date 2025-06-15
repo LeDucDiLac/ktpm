@@ -1,137 +1,230 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
-import { Row, Col, ListGroup, Badge, Container } from 'react-bootstrap';
-import axios from 'axios';
-import Loader from '../components/Loader';
-import Message from '../components/Message';
-import AuthContext from '../context/AuthContext';
+import React, { useState, useEffect, useContext } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { Row, Col, Card, Badge, Button } from "react-bootstrap";
+import axios from "axios";
+import Loader from "../components/Loader";
+import Message from "../components/Message";
+import AuthContext from "../context/AuthContext";
 
 const PaymentDetailScreen = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const { userInfo } = useContext(AuthContext);
-  
-  useEffect(() => {
-    const fetchPayment = async () => {
-      try {
-        const config = {
-          headers: {
-            Authorization: `Bearer ${userInfo.token}`,
-          },
-        };
 
-        const { data } = await axios.get(`/api/payments/${id}`, config);
-        setPayment(data);
-        setLoading(false);
-      } catch (error) {
-        setError(
-          error.response && error.response.data.message
-            ? error.response.data.message
-            : error.message
-        );
-        setLoading(false);
-      }
+  const paymentMethods = {
+    cash: { label: "Tiền mặt", icon: "money-bill-wave" },
+    bank_transfer: { label: "Chuyển khoản", icon: "university" },
+    other: { label: "Khác", icon: "circle" },
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      paid: { bg: "success", icon: "check-circle", text: "Đã thanh toán" },
+      pending: { bg: "warning", icon: "clock", text: "Chưa thanh toán" },
+      overdue: { bg: "danger", icon: "exclamation-circle", text: "Quá hạn" },
+      refunded: { bg: "info", icon: "undo", text: "Đã hoàn tiền" },
     };
+    const badge = badges[status] || badges.pending;
+    return (
+      <Badge bg={badge.bg} className="d-inline-flex align-items-center gap-1">
+        <i className={`fas fa-${badge.icon}`}></i> {badge.text}
+      </Badge>
+    );
+  };
 
-    if (userInfo) {
-      fetchPayment();
-    } else {
-      navigate('/login');
+  useEffect(() => {
+    fetchPayment();
+  }, [id, userInfo]);
+
+  const fetchPayment = async () => {
+    try {
+      setLoading(true);
+      const { data } = await axios.get(`/api/payments/${id}`, {
+        headers: { Authorization: `Bearer ${userInfo.token}` },
+      });
+      setPayment(data);
+    } catch (error) {
+      setError(
+        error.response?.data?.message || "Không thể tải thông tin thanh toán"
+      );
+    } finally {
+      setLoading(false);
     }
-  }, [id, navigate, userInfo]);
-  
+  };
+
   return (
-    <Container>
-      <Link to="/payments" className="btn btn-light my-3">
-        Quay lại
-      </Link>
+    <div className="py-3">
+      <Button
+        variant="dark"
+        className="mb-3"
+        onClick={() => navigate("/payments")}
+      >
+        <i className="fas fa-arrow-left me-2"></i>Quay lại
+      </Button>
+
       {loading ? (
         <Loader />
       ) : error ? (
         <Message variant="danger">{error}</Message>
       ) : (
-        <>
-          <h1>Chi tiết thanh toán</h1>
-          <Row>
-            <Col md={12}>
-              <ListGroup variant="flush">
-                <ListGroup.Item>
-                  <h2>Thông tin cơ bản</h2>
-                  <Row>
-                    <Col md={6}>
-                      <p>
-                        <strong>ID: </strong> {payment._id}
-                      </p>
-                      <p>
-                        <strong>Tên phí: </strong>
-                        {payment.fee?.name}
-                      </p>
-                      <p>
-                        <strong>Căn hộ: </strong>
-                        {payment.household?.apartmentNumber}
-                      </p>
-                      <p>
-                        <strong>Số tiền: </strong>
-                        {payment.amount?.toLocaleString('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND',
-                        })}
-                      </p>
-                      <p>
-                        <strong>Phương thức: </strong>
-                        {payment.method}
-                      </p>
-                    </Col>
-                    <Col md={6}>
-                      <p>
-                        <strong>Trạng thái: </strong>
-                        <Badge
-                          bg={
-                            payment.status === 'paid'
-                              ? 'success'
-                              : payment.status === 'overdue'
-                              ? 'danger'
-                              : 'warning'
-                          }
-                        >
-                          {payment.status === 'paid'
-                            ? 'Đã thanh toán'
-                            : payment.status === 'overdue'
-                            ? 'Quá hạn'
-                            : 'Chưa thanh toán'}
-                        </Badge>
-                      </p>
-                      <p>
-                        <strong>Ngày thanh toán: </strong>
-                        {payment.paymentDate
-                          ? new Date(payment.paymentDate).toLocaleDateString(
-                              'vi-VN'
-                            )
-                          : 'N/A'}
-                      </p>
-                      <p>
-                        <strong>Ngày tạo: </strong>
-                        {new Date(payment.createdAt).toLocaleDateString('vi-VN')}
-                      </p>
-                      <p>
-                        <strong>Cập nhật lần cuối: </strong>
-                        {new Date(payment.updatedAt).toLocaleDateString('vi-VN')}
-                      </p>
-                    </Col>
-                  </Row>
-                </ListGroup.Item>
-              </ListGroup>
-            </Col>
-          </Row>
-        </>
+        payment && (
+          <>
+            <Card className="shadow mb-4" style={{ background: "#1C1C1E" }}>
+              <Card.Header className="border-0 bg-transparent">
+                <div className="d-flex justify-content-between align-items-center">
+                  <h4 className="text-light mb-0">Chi tiết thanh toán</h4>
+                  {getStatusBadge(payment.status)}
+                </div>
+              </Card.Header>
+
+              <Card.Body className="text-light">
+                <Row className="g-4">
+                  <Col md={6}>
+                    <div className="bg-dark p-4 rounded h-100">
+                      <h5 className="mb-4">Thông tin thanh toán</h5>
+
+                      <div className="mb-3">
+                        <small className="text-secondary">Mã thanh toán</small>
+                        <div>{payment._id}</div>
+                      </div>
+
+                      <div className="mb-3">
+                        <small className="text-secondary">Loại phí</small>
+                        <div className="h5 mb-0">{payment.fee?.name}</div>
+                      </div>
+
+                      <div className="mb-3">
+                        <small className="text-secondary">Số tiền</small>
+                        <div className="h4 text-success mb-0">
+                          {payment.amount?.toLocaleString()} VND
+                        </div>
+                      </div>
+
+                      <div className="mb-3">
+                        <small className="text-secondary">Phương thức</small>
+                        <div>
+                          <i
+                            className={`fas fa-${
+                              paymentMethods[payment.method]?.icon || "circle"
+                            } me-2`}
+                          ></i>
+                          {paymentMethods[payment.method]?.label ||
+                            payment.method}
+                        </div>
+                      </div>
+
+                      {payment.note && (
+                        <div className="mb-3">
+                          <small className="text-secondary">Ghi chú</small>
+                          <div>{payment.note}</div>
+                        </div>
+                      )}
+                    </div>
+                  </Col>
+
+                  <Col md={6}>
+                    <div className="bg-dark p-4 rounded h-100">
+                      <h5 className="mb-4">Thông tin căn hộ</h5>
+
+                      <div className="mb-3">
+                        <small className="text-secondary">Căn hộ</small>
+                        <div>
+                          <Link
+                            to={`/households/${payment.household?._id}`}
+                            className="h5 text-info text-decoration-none"
+                          >
+                            {payment.household?.apartmentNumber}
+                          </Link>
+                        </div>
+                      </div>
+
+
+
+                      <div className="mb-3">
+                        <small className="text-secondary">
+                          Người thanh toán
+                        </small>
+                        <div>{payment.payerName || "N/A"}</div>
+                      </div>
+
+                      <div className="mb-3">
+                        <small className="text-secondary">
+                          Ngày thanh toán
+                        </small>
+                        <div>
+                          {payment.paymentDate ? (
+                            <span
+                              title={new Date(
+                                payment.paymentDate
+                              ).toLocaleString("vi-VN")}
+                            >
+                              {new Date(payment.paymentDate).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </span>
+                          ) : (
+                            "Chưa thanh toán"
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mb-3">
+                        <small className="text-secondary">Ngày tạo</small>
+                        <div>
+                          {new Date(payment.createdAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <small className="text-secondary">
+                          Cập nhật lần cuối
+                        </small>
+                        <div>
+                          {new Date(payment.updatedAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
+            {userInfo?.role === "admin" && payment.status === "paid" && (
+              <Card className="shadow" style={{ background: "#1C1C1E" }}>
+                <Card.Body>
+                  <div className="d-flex justify-content-end">
+                    <Button
+                      variant="warning"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "Bạn có chắc chắn muốn hoàn tiền cho thanh toán này không?"
+                          )
+                        ) {
+                          // Add refund logic here
+                        }
+                      }}
+                    >
+                      <i className="fas fa-undo me-2"></i>Hoàn tiền
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
+          </>
+        )
       )}
-    </Container>
+    </div>
   );
 };
 
-export default PaymentDetailScreen; 
+export default PaymentDetailScreen;

@@ -25,9 +25,9 @@ h6 {
 
 .card {
   border-radius: 1rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: none !important;
   border: none;
-  background: #222;
+  background: #181818 !important;
   color: #f5f5f5;
 }
 
@@ -104,4 +104,314 @@ a:hover {
 .shadow,
 .shadow-sm {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* General background and text */
+body,
+.card,
+.card-header,
+.card-body,
+.form-check-label,
+.form-control,
+.form-select {
+  background: #181a1b !important;
+  color: #e0e0e0 !important;
+  border-color: #333 !important;
+}
+
+/* Chart legend and summary text */
+.chartjs-render-monitor,
+.card .row,
+.card .col,
+.card .form-check-label {
+  color: #fff !important;
+}
+
+/* Checkbox styling for visibility */
+.form-check-input:checked {
+  background-color: #e0e0e0 !important;
+  border-color: #e0e0e0 !important;
+}
+.form-check-input {
+  background-color: #23272b !important;
+  border-color: #e0e0e0 !important;
+}
+
+/* Remove card box-shadow if you want a flatter look */
+.card,
+.shadow,
+.shadow-sm {
+  box-shadow: none !important;
+}
+
+/* Optional: Make the chart area even darker */
+.card {
+  background: #181818 !important;
+}
+
+/* Optional: Make summary dots more visible */
+.card .row span {
+  filter: brightness(1.5);
+}
+
+/* Add these styles for dropdown items */
+.dropdown-item {
+  color: #e0e0e0 !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 0.25rem !important;
+  margin: 0.125rem 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: #3a3b3c !important;
+  color: #fff !important;
+}
+
+.dropdown-item:active {
+  background-color: #4d4d4d !important;
+}
+
+/* Dropdown menu styling - make items more noticeable */
+.dropdown-menu {
+  background-color: #242526 !important;
+  border: 1px solid #444 !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem !important;
+}
+
+/* Make dropdown divider more visible */
+.dropdown-divider {
+  border-color: #444 !important;
+  margin: 0.5rem 0 !important;
+}
+
+/* Active state for dropdown items */
+.dropdown-item.active,
+.dropdown-item:active {
+  background-color: #0d6efd !important;
+  color: #fff !important;
+}
+
+/* Search bar styling */
+.input-group .form-control {
+  background: #242526 !important;
+  border: 1px solid #444 !important;
+  color: #e0e0e0 !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 1rem !important;
+  border-radius: 0.5rem 0 0 0.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.input-group .form-control:focus {
+  background: #2f3031 !important;
+  border-color: #666 !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Search bar button */
+.input-group .btn-outline-secondary {
+  border: 1px solid #444 !important;
+  color: #e0e0e0 !important;
+  background: #242526 !important;
+  border-radius: 0 0.5rem 0.5rem 0 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+.input-group .btn-outline-secondary:hover {
+  background: #2f3031 !important;
+  border-color: #666 !important;
+  color: #fff !important;
+}
+
+/* Search bar container */
+.input-group {
+  border-radius: 0.5rem !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Style for action icons/buttons */
+.btn-action {
+  background-color: #242526 !important;
+  border: 1px solid #444 !important;
+  color: #e0e0e0 !important;
+  padding: 0.375rem 0.75rem !important;
+  margin: 0 0.25rem !important;
+  border-radius: 0.25rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-action:hover {
+  background-color: #3a3b3c !important;
+  color: #fff !important;
+  border-color: #666 !important;
+}
+
+.btn-action i {
+  color: #e0e0e0 !important;
+}
+
+.btn-action:hover i {
+  color: #fff !important;
+}
+
+/* Table action buttons styling */
+.table .btn-light,
+.table .btn-danger {
+  background-color: #242526 !important;
+  border: 1px solid #444 !important;
+  color: #e0e0e0 !important;
+  padding: 0.375rem 0.75rem !important;
+  margin: 0 0.25rem !important;
+  border-radius: 0.25rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.table .btn-light:hover {
+  background-color: #3a3b3c !important;
+  border-color: #666 !important;
+}
+
+.table .btn-danger {
+  background-color: #242526 !important;
+  border-color: #dc3545 !important;
+}
+
+.table .btn-danger:hover {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+}
+
+/* Make the icons white */
+.table .btn-light i,
+.table .btn-danger i {
+  color: #e0e0e0 !important;
+}
+
+.table .btn-light:hover i,
+.table .btn-danger:hover i {
+  color: #fff !important;
+}
+
+/* Add or update these styles */
+
+/* List Group Items */
+.list-group-item {
+  background-color: #242526 !important;
+  border-color: #444 !important;
+  color: #e0e0e0 !important;
+}
+
+/* Back Button */
+.btn-light {
+  background-color: #242526 !important;
+  border-color: #444 !important;
+  color: #e0e0e0 !important;
+}
+
+.btn-light:hover {
+  background-color: #3a3b3c !important;
+  color: #fff !important;
+}
+
+/* Table Cells and Headers */
+.table {
+  color: #e0e0e0 !important;
+}
+
+/* Status Text Colors */
+.text-success {
+  color: #28a745 !important;
+}
+
+.text-danger {
+  color: #dc3545 !important;
+}
+
+/* Badge Colors */
+.badge.bg-success {
+  background-color: #1e4620 !important;
+  color: #4cd964 !important;
+}
+
+.badge.bg-warning {
+  background-color: #4d3800 !important;
+  color: #ffcc00 !important;
+}
+
+.badge.bg-danger {
+  background-color: #4c1511 !important;
+  color: #ff4444 !important;
+}
+
+/* Alert Styling */
+.alert-info {
+  background-color: #242526 !important;
+  border-color: #444 !important;
+  color: #e0e0e0 !important;
+}
+
+/* Card Styling */
+.card-header {
+  border-bottom-color: #444 !important;
+}
+
+.card-footer {
+  background-color: #242526 !important;
+  border-top-color: #444 !important;
+}
+
+/* Action Buttons */
+.btn-success {
+  background-color: #1e4620 !important;
+  border-color: #28a745 !important;
+  color: #fff !important;
+}
+
+.btn-success:hover {
+  background-color: #28a745 !important;
+}
+
+.btn-info {
+  background-color: #0c3455 !important;
+  border-color: #17a2b8 !important;
+  color: #fff !important;
+}
+
+.btn-info:hover {
+  background-color: #17a2b8 !important;
+}
+
+.btn-warning {
+  background-color: #4d3800 !important;
+  border-color: #ffc107 !important;
+  color: #fff !important;
+}
+
+.btn-warning:hover {
+  background-color: #ffc107 !important;
+  color: #000 !important;
+}
+
+/* Table Hover Effect */
+.table-hover tbody tr:hover {
+  background-color: #2c2d2e !important;
+  color: #fff !important;
+}
+
+/* Table Striped Effect */
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: #1e1f20 !important;
+}
+
+/* Make icons consistent */
+.fas {
+  color: #e0e0e0;
+}
+
+/* Fix button icon colors */
+.btn i.fas {
+  color: inherit !important;
 }

@@ -1,203 +1,232 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Form, Button } from 'react-bootstrap';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import Message from '../components/Message';
-import Loader from '../components/Loader';
-import FormContainer from '../components/FormContainer';
-import AuthContext from '../context/AuthContext';
-import axios from 'axios';
+import React, { useState, useEffect, useContext } from "react";
+import { Form, Button, Card, Row, Col } from "react-bootstrap";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import Message from "../components/Message";
+import Loader from "../components/Loader";
+import AuthContext from "../context/AuthContext";
+import axios from "axios";
 
 const HouseholdEditScreen = () => {
   const { id } = useParams();
-  const isEditMode = !!id;
-  
-  const [apartmentNumber, setApartmentNumber] = useState('');
-  const [address, setAddress] = useState('');
-  const [note, setNote] = useState('');
-  const [active, setActive] = useState(true);
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [validationErrors, setValidationErrors] = useState({});
-  
   const navigate = useNavigate();
   const { userInfo } = useContext(AuthContext);
-  
+  const isEditMode = !!id;
+
+  const [formData, setFormData] = useState({
+    apartmentNumber: "",
+    address: "",
+    note: "",
+    active: true,
+  });
+
+  const [status, setStatus] = useState({
+    loading: false,
+    error: "",
+    success: false,
+    validationErrors: {},
+  });
+
   useEffect(() => {
-    if (isEditMode) {
-      fetchHouseholdDetails();
-    }
-  }, [id, isEditMode, userInfo]);
-  
+    if (isEditMode) fetchHouseholdDetails();
+  }, [id, userInfo]);
+
   const fetchHouseholdDetails = async () => {
     try {
-      setLoading(true);
-      
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-      
-      const { data } = await axios.get(`/api/households/${id}`, config);
-      
-      setApartmentNumber(data.apartmentNumber);
-      setAddress(data.address);
-      setNote(data.note || '');
-      setActive(data.active);
-      
-      setLoading(false);
+      setStatus((prev) => ({ ...prev, loading: true, error: "" }));
+
+      const { data } = await axios.get(`/api/households/${id}`, {
+        headers: { Authorization: `Bearer ${userInfo.token}` },
+      });
+
+      setFormData({
+        apartmentNumber: data.apartmentNumber,
+        address: data.address,
+        note: data.note || "",
+        active: data.active,
+      });
     } catch (error) {
-      setError(
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : 'Không thể tải thông tin hộ gia đình'
-      );
-      setLoading(false);
+      setStatus((prev) => ({
+        ...prev,
+        error:
+          error.response?.data?.message ||
+          "Không thể tải thông tin hộ gia đình",
+      }));
+    } finally {
+      setStatus((prev) => ({ ...prev, loading: false }));
     }
   };
-  
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
   const validateForm = () => {
     const errors = {};
-    
-    if (!apartmentNumber.trim()) {
-      errors.apartmentNumber = 'Số căn hộ là bắt buộc';
+    if (!formData.apartmentNumber.trim()) {
+      errors.apartmentNumber = "Số căn hộ là bắt buộc";
     }
-    
-    if (!address.trim()) {
-      errors.address = 'Địa chỉ là bắt buộc';
+    if (!formData.address.trim()) {
+      errors.address = "Địa chỉ là bắt buộc";
     }
-    
-    setValidationErrors(errors);
+    setStatus((prev) => ({ ...prev, validationErrors: errors }));
     return Object.keys(errors).length === 0;
   };
-  
-  const submitHandler = async (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
+    if (!validateForm()) return;
+
     try {
-      setLoading(true);
-      setError('');
-      
+      setStatus((prev) => ({
+        ...prev,
+        loading: true,
+        error: "",
+        success: false,
+      }));
+
       const config = {
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${userInfo.token}`,
         },
       };
-      
-      const householdData = {
-        apartmentNumber,
-        address,
-        note,
-        active
-      };
-      
+
       if (isEditMode) {
-        await axios.put(`/api/households/${id}`, householdData, config);
+        await axios.put(`/api/households/${id}`, formData, config);
       } else {
-        await axios.post('/api/households', householdData, config);
+        await axios.post("/api/households", formData, config);
       }
-      
-      setLoading(false);
-      setSuccess(true);
-      
-      setTimeout(() => {
-        navigate('/households');
-      }, 2000);
-      
+
+      setStatus((prev) => ({ ...prev, success: true }));
+      setTimeout(() => navigate("/households"), 1500);
     } catch (error) {
-      setError(
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : `Không thể ${isEditMode ? 'cập nhật' : 'tạo'} hộ gia đình`
-      );
-      setLoading(false);
+      setStatus((prev) => ({
+        ...prev,
+        error:
+          error.response?.data?.message ||
+          `Không thể ${isEditMode ? "cập nhật" : "tạo"} hộ gia đình`,
+      }));
+    } finally {
+      setStatus((prev) => ({ ...prev, loading: false }));
     }
   };
-  
+
   return (
-    <>
-      <Link to='/households' className='btn btn-light my-3'>
-        <i className="fas fa-arrow-left"></i> Quay lại
-      </Link>
-      
-      <FormContainer>
-        <h1>{isEditMode ? 'Chỉnh Sửa Hộ Gia Đình' : 'Thêm Hộ Gia Đình Mới'}</h1>
-        
-        {error && <Message variant='danger'>{error}</Message>}
-        {success && (
-          <Message variant='success'>
-            Hộ gia đình đã được {isEditMode ? 'cập nhật' : 'tạo'} thành công!
-          </Message>
-        )}
-        {loading && <Loader />}
-        
-        <Form onSubmit={submitHandler} noValidate>
-          <Form.Group controlId='apartmentNumber' className='mb-3'>
-            <Form.Label>Số Căn Hộ</Form.Label>
-            <Form.Control
-              type='text'
-              placeholder='Nhập số căn hộ'
-              value={apartmentNumber}
-              onChange={(e) => setApartmentNumber(e.target.value)}
-              isInvalid={!!validationErrors.apartmentNumber}
-              required
-            />
-            <Form.Control.Feedback type='invalid'>
-              {validationErrors.apartmentNumber}
-            </Form.Control.Feedback>
-          </Form.Group>
-          
-          <Form.Group controlId='address' className='mb-3'>
-            <Form.Label>Địa Chỉ</Form.Label>
-            <Form.Control
-              type='text'
-              placeholder='Nhập địa chỉ'
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              isInvalid={!!validationErrors.address}
-              required
-            />
-            <Form.Control.Feedback type='invalid'>
-              {validationErrors.address}
-            </Form.Control.Feedback>
-          </Form.Group>
-          
-          <Form.Group controlId='note' className='mb-3'>
-            <Form.Label>Ghi Chú</Form.Label>
-            <Form.Control
-              as='textarea'
-              rows={3}
-              placeholder='Nhập ghi chú (không bắt buộc)'
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </Form.Group>
-          
-          {isEditMode && (
-            <Form.Group controlId='active' className='mb-3'>
-              <Form.Check
-                type='checkbox'
-                label='Đang hoạt động'
-                checked={active}
-                onChange={(e) => setActive(e.target.checked)}
+    <div className="py-3">
+      <Button
+        variant="dark"
+        className="mb-3"
+        onClick={() => navigate("/households")}
+      >
+        <i className="fas fa-arrow-left me-2"></i>Quay lại
+      </Button>
+
+      <Card className="shadow" style={{ background: "#1C1C1E" }}>
+        <Card.Header className="border-0 bg-transparent">
+          <h4 className="text-light mb-0">
+            {isEditMode ? "Chỉnh Sửa Hộ Gia Đình" : "Thêm Hộ Gia Đình Mới"}
+          </h4>
+        </Card.Header>
+
+        <Card.Body>
+          {status.error && <Message variant="danger">{status.error}</Message>}
+          {status.success && (
+            <Message variant="success">
+              Hộ gia đình đã được {isEditMode ? "cập nhật" : "tạo"} thành công!
+            </Message>
+          )}
+          {status.loading && <Loader />}
+
+          <Form onSubmit={handleSubmit} className="text-light">
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    <i className="fas fa-home me-2"></i>Số Căn Hộ
+                  </Form.Label>
+                  <Form.Control
+                    name="apartmentNumber"
+                    value={formData.apartmentNumber}
+                    onChange={handleInputChange}
+                    isInvalid={!!status.validationErrors.apartmentNumber}
+                    placeholder="VD: A101, B202, ..."
+                    className="bg-dark text-light border-secondary"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {status.validationErrors.apartmentNumber}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    <i className="fas fa-map-marker-alt me-2"></i>Địa Chỉ
+                  </Form.Label>
+                  <Form.Control
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    isInvalid={!!status.validationErrors.address}
+                    placeholder="VD: Tầng 1, Block A, ..."
+                    className="bg-dark text-light border-secondary"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {status.validationErrors.address}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>
+                <i className="fas fa-sticky-note me-2"></i>Ghi Chú
+              </Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="note"
+                value={formData.note}
+                onChange={handleInputChange}
+                placeholder="Thêm ghi chú về hộ gia đình (không bắt buộc)"
+                className="bg-dark text-light border-secondary"
               />
             </Form.Group>
-          )}
-          
-          <Button type='submit' variant='primary' className='mt-3'>
-            {isEditMode ? 'Cập Nhật' : 'Tạo Mới'}
-          </Button>
-        </Form>
-      </FormContainer>
-    </>
+
+            {isEditMode && (
+              <Form.Group className="mb-3">
+                <Form.Check
+                  type="switch"
+                  name="active"
+                  label="Đang hoạt động"
+                  checked={formData.active}
+                  onChange={handleInputChange}
+                  className="custom-switch"
+                />
+              </Form.Group>
+            )}
+
+            <div className="d-flex justify-content-end">
+              <Button
+                type="submit"
+                variant={isEditMode ? "info" : "success"}
+                className="px-4"
+              >
+                <i
+                  className={`fas fa-${isEditMode ? "save" : "plus"} me-2`}
+                ></i>
+                {isEditMode ? "Cập Nhật" : "Tạo Mới"}
+              </Button>
+            </div>
+          </Form>
+        </Card.Body>
+      </Card>
+    </div>
   );
 };
 
-export default HouseholdEditScreen; 
+export default HouseholdEditScreen;

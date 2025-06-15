@@ -9,6 +9,7 @@ const LoginScreen = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
   const { login, userInfo, loading } = useContext(AuthContext);
@@ -34,16 +35,26 @@ const LoginScreen = () => {
   };
 
   return (
-    <Row className="justify-content-md-center mt-5">
-      <Col md={6}>
+    <div
+      className="min-vh-100 d-flex align-items-center justify-content-center py-5"
+      style={{ background: "#121212" }}
+    >
+      <Col md={5} lg={4} className="px-4">
+        <div className="text-center mb-4">
+          <h1 className="text-light mb-2" style={{ fontWeight: 700 }}>
+            APARTMENT
+          </h1>
+          <p className="text-secondary">Hệ thống quản lý chung cư</p>
+        </div>
+
         <Card
-          className="p-4 shadow auth-card"
-          style={{ borderRadius: "2rem", background: "#f9fafc" }}
+          className="shadow-lg border-0"
+          style={{ background: "#1C1C1E", borderRadius: "1rem" }}
         >
-          <Card.Body>
+          <Card.Body className="p-4">
             <h2
-              className="text-center mb-4"
-              style={{ color: "#3358ff", fontWeight: 700 }}
+              className="text-light text-center mb-4"
+              style={{ fontWeight: 600 }}
             >
               Đăng nhập
             </h2>
@@ -53,52 +64,84 @@ const LoginScreen = () => {
 
             <Form onSubmit={submitHandler}>
               <Form.Group controlId="username" className="mb-3">
-                <Form.Label>Tên đăng nhập</Form.Label>
+                <Form.Label className="text-light">
+                  <i className="fas fa-user me-2"></i>Tên đăng nhập
+                </Form.Label>
                 <Form.Control
                   type="text"
                   placeholder="Nhập tên đăng nhập"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  className="bg-dark text-light border-secondary"
+                  style={{ borderRadius: "0.5rem" }}
                   required
                 />
               </Form.Group>
 
-              <Form.Group controlId="password" className="mb-3">
-                <Form.Label>Mật khẩu</Form.Label>
-                <Form.Control
-                  type="password"
-                  placeholder="Nhập mật khẩu"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+              <Form.Group controlId="password" className="mb-4">
+                <Form.Label className="text-light">
+                  <i className="fas fa-lock me-2"></i>Mật khẩu
+                </Form.Label>
+                <div className="position-relative">
+                  <Form.Control
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Nhập mật khẩu"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-dark text-light border-secondary"
+                    style={{ borderRadius: "0.5rem" }}
+                    required
+                  />
+                  <Button
+                    variant="link"
+                    className="position-absolute end-0 top-50 translate-middle-y text-secondary"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ zIndex: 10 }}
+                  >
+                    <i
+                      className={`fas fa-eye${showPassword ? "-slash" : ""}`}
+                    ></i>
+                  </Button>
+                </div>
               </Form.Group>
 
               <Button
                 type="submit"
                 variant="primary"
-                className="w-100 mt-3"
+                className="w-100 py-2 mb-3"
                 style={{
-                  borderRadius: "2rem",
+                  borderRadius: "0.5rem",
                   fontWeight: 600,
-                  fontSize: "1.1rem",
+                  backgroundColor: "#3358ff",
+                  border: "none",
                 }}
                 disabled={loading}
               >
-                {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" />
+                    Đang đăng nhập...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-sign-in-alt me-2"></i>
+                    Đăng nhập
+                  </>
+                )}
               </Button>
             </Form>
 
-            <div className="alert alert-info mt-3">
-              <p className="mb-0">
-                <strong>Lưu ý:</strong> Tài khoản quản lý chỉ được cấp bởi quản
-                trị viên hệ thống.
-              </p>
-            </div>
+
           </Card.Body>
         </Card>
+
+        <div className="text-center mt-4">
+          <p className="text-secondary mb-0">
+            © {new Date().getFullYear()} Apartment Management System
+          </p>
+        </div>
       </Col>
-    </Row>
+    </div>
   );
 };
 

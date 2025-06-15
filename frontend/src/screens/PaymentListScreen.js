@@ -1,241 +1,348 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Table, Button, Row, Col, Form, InputGroup } from 'react-bootstrap';
-import { LinkContainer } from 'react-router-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import Message from '../components/Message';
-import Loader from '../components/Loader';
-import AuthContext from '../context/AuthContext';
-import axios from 'axios';
-import { Link } from 'react-router-dom';
-import { Badge } from 'react-bootstrap';
+import React, { useState, useEffect, useContext } from "react";
+import {
+  Table,
+  Button,
+  Row,
+  Col,
+  Form,
+  InputGroup,
+  Card,
+  Badge,
+} from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
+import Message from "../components/Message";
+import Loader from "../components/Loader";
+import AuthContext from "../context/AuthContext";
+import axios from "axios";
 
 const PaymentListScreen = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortField, setSortField] = useState("paymentDate");
+  const [sortDirection, setSortDirection] = useState("desc");
+
   const navigate = useNavigate();
   const { userInfo } = useContext(AuthContext);
-  
-  // Check if user is admin
-  const isAdmin = userInfo && (userInfo.role === 'admin' || userInfo.role === 'accountant');
-  
+  const isAdmin =
+    userInfo && (userInfo.role === "admin" || userInfo.role === "accountant");
+
+  const paymentMethods = {
+    cash: { label: "Tiền mặt", icon: "money-bill-wave" },
+    bank_transfer: { label: "Chuyển khoản", icon: "university" },
+    other: { label: "Khác", icon: "circle" },
+  };
+
   useEffect(() => {
     fetchPayments();
   }, [userInfo]);
-  
+
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-      
-      const { data } = await axios.get('/api/payments', config);
+      const { data } = await axios.get("/api/payments", {
+        headers: { Authorization: `Bearer ${userInfo.token}` },
+      });
       setPayments(data);
-      setLoading(false);
     } catch (error) {
       setError(
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : 'Không thể tải danh sách thanh toán'
+        error.response?.data?.message || "Không thể tải danh sách thanh toán"
       );
+    } finally {
       setLoading(false);
     }
   };
-  
-  const handleRefund = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn hoàn tiền khoản thanh toán này? Hành động này không thể hoàn tác.')) {
+
+  const handleSort = (field) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      paid: { bg: "success", icon: "check-circle", text: "Đã thanh toán" },
+      pending: { bg: "warning", icon: "clock", text: "Chưa thanh toán" },
+      overdue: { bg: "danger", icon: "exclamation-circle", text: "Quá hạn" },
+      refunded: { bg: "info", icon: "undo", text: "Đã hoàn tiền" },
+    };
+    const badge = badges[status] || badges.pending;
+    return (
+      <Badge bg={badge.bg} className="d-inline-flex align-items-center gap-1">
+        <i className={`fas fa-${badge.icon}`}></i> {badge.text}
+      </Badge>
+    );
+  };
+
+  const sortedAndFilteredPayments = payments
+    .filter((payment) => {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch =
+        payment.household?.apartmentNumber
+          ?.toLowerCase()
+          .includes(searchLower) ||
+        payment.fee?.name?.toLowerCase().includes(searchLower) ||
+        payment.receiptNumber?.toLowerCase().includes(searchLower) ||
+        (payment.payerName &&
+          payment.payerName.toLowerCase().includes(searchLower));
+
+      const matchesStatus = !statusFilter || payment.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case "amount":
+          comparison = a.amount - b.amount;
+          break;
+        case "paymentDate":
+          comparison =
+            new Date(b.paymentDate || 0) - new Date(a.paymentDate || 0);
+          break;
+        default:
+          comparison = String(a[sortField]).localeCompare(String(b[sortField]));
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+
+  const handleRefund = async (paymentId) => {
+    if (
+      window.confirm(
+        "Bạn có chắc chắn muốn hoàn tiền cho thanh toán này không?"
+      )
+    ) {
       try {
         setLoading(true);
-        
-        const config = {
-          headers: {
-            Authorization: `Bearer ${userInfo.token}`,
-          },
-        };
-        
-        await axios.put(`/api/payments/${id}/refund`, {}, config);
-        
-        fetchPayments();
+        await axios.post(
+          `/api/payments/${paymentId}/refund`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          }
+        );
+        fetchPayments(); // Refresh the list
       } catch (error) {
         setError(
-          error.response && error.response.data.message
-            ? error.response.data.message
-            : 'Không thể hoàn tiền khoản thanh toán'
+          error.response?.data?.message || "Không thể hoàn tiền thanh toán"
         );
+      } finally {
         setLoading(false);
       }
     }
   };
-  
-  const filteredPayments = payments.filter(
-    (payment) => {
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = (
-        payment.household?.apartmentNumber?.toLowerCase().includes(searchLower) ||
-        payment.fee?.name?.toLowerCase().includes(searchLower) ||
-        payment.receiptNumber?.toLowerCase().includes(searchLower) ||
-        (payment.payerName && payment.payerName.toLowerCase().includes(searchLower))
-      );
-      
-      const matchesStatus = statusFilter === '' || payment.status === statusFilter;
-      
-      return matchesSearch && matchesStatus;
-    }
-  );
-  
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchPayments();
-  };
-  
+
   return (
-    <>
+    <div className="py-3">
       <Row className="align-items-center mb-3">
         <Col>
-          <h1>Thanh Toán</h1>
+          <h1 className="text-light mb-0">Thanh Toán</h1>
         </Col>
-        <Col className="text-end">
-          <Button 
-            className="btn-sm"
-            onClick={() => navigate('/payments/create')}
-          >
-            <i className="fas fa-plus"></i> Tạo Thanh Toán
-          </Button>
-        </Col>
-      </Row>
-
-      <Row className="mb-3">
-        <Col md={4}>
-          <InputGroup>
-            <Form.Control
-              type="text"
-              placeholder="Tìm kiếm thanh toán..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <Button
-              variant="outline-secondary"
-              onClick={() => setSearchTerm('')}
-            >
-              Xóa
-            </Button>
-          </InputGroup>
-        </Col>
-        <Col md={3}>
-          <Form.Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="paid">Đã thanh toán</option>
-            <option value="pending">Chưa thanh toán</option>
-            <option value="overdue">Quá hạn</option>
-          </Form.Select>
-        </Col>
-        <Col md={2}>
+        <Col xs="auto">
           <Button
-            variant="outline-secondary"
-            onClick={() => {
-              setSearchTerm('');
-              setStatusFilter('');
-            }}
+            variant="success"
+            onClick={() => navigate("/payments/create")}
           >
-            Xóa tất cả
+            <i className="fas fa-plus me-2"></i>Tạo thanh toán mới
           </Button>
         </Col>
       </Row>
 
-      {loading ? (
-        <Loader />
-      ) : error ? (
-        <Message variant="danger">{error}</Message>
-      ) : (
-        <>
-          <Table striped bordered hover responsive className="table-sm">
-            <thead>
-              <tr>
-                <th>Loại Phí</th>
-                <th>Căn Hộ</th>
-                <th>Số Tiền</th>
-                <th>Phương thức</th>
-                <th>Trạng thái</th>
-                <th>Ngày thanh toán</th>
-                <th>Ghi chú</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPayments.map((payment) => (
-                <tr key={payment._id}>
-                  <td>
-                    <Link to={`/payments/${payment._id}`}>
-                      {payment.fee ? payment.fee.name : 'N/A'}
-                    </Link>
-                  </td>
-                  <td>
-                    {payment.household
-                      ? payment.household.apartmentNumber
-                      : 'N/A'}
-                  </td>
-                  <td>
-                    {payment.amount?.toLocaleString('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND',
-                    })}
-                  </td>
-                  <td>{payment.method}</td>
-                  <td>
-                    <Badge
-                      bg={
-                        payment.status === 'paid'
-                          ? 'success'
-                          : payment.status === 'overdue'
-                          ? 'danger'
-                          : 'warning'
-                      }
+      <Card className="shadow" style={{ background: "#1C1C1E" }}>
+        <Card.Body>
+          <Row className="mb-3 g-3">
+            <Col md={4}>
+              <InputGroup>
+                <InputGroup.Text className="bg-dark border-secondary">
+                  <i className="fas fa-search"></i>
+                </InputGroup.Text>
+                <Form.Control
+                  placeholder="Tìm kiếm theo căn hộ, loại phí..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-dark text-light border-secondary"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="outline-secondary"
+                    onClick={() => setSearchTerm("")}
+                  >
+                    <i className="fas fa-times"></i>
+                  </Button>
+                )}
+              </InputGroup>
+            </Col>
+
+            <Col md={3}>
+              <Form.Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-dark text-light border-secondary"
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="paid">Đã thanh toán</option>
+                <option value="pending">Chưa thanh toán</option>
+                <option value="overdue">Quá hạn</option>
+                <option value="refunded">Đã hoàn tiền</option>
+              </Form.Select>
+            </Col>
+
+            <Col md={5} className="text-md-end">
+              <small className="text-light">
+                {sortedAndFilteredPayments.length} thanh toán
+              </small>
+            </Col>
+          </Row>
+
+          {error && <Message variant="danger">{error}</Message>}
+
+          {loading ? (
+            <Loader />
+          ) : (
+            <div className="table-responsive">
+              <Table hover variant="dark" className="mb-0">
+                <thead>
+                  <tr>
+                    <th
+                      onClick={() => handleSort("fee.name")}
+                      style={{ cursor: "pointer" }}
                     >
-                      {payment.status === 'paid'
-                        ? 'Đã thanh toán'
-                        : payment.status === 'overdue'
-                        ? 'Quá hạn'
-                        : 'Chưa thanh toán'}
-                    </Badge>
-                  </td>
-                  <td>
-                    {payment.paymentDate
-                      ? new Date(payment.paymentDate).toLocaleDateString(
-                          'vi-VN'
-                        )
-                      : 'N/A'}
-                  </td>
-                  <td>{payment.note || 'N/A'}</td>
-                  <td>
-                    <Button
-                      variant="light"
-                      className="btn-sm"
-                      onClick={() => navigate(`/payments/${payment._id}`)}
+                      Loại Phí{" "}
+                      {sortField === "fee.name" && (
+                        <i className={`fas fa-sort-${sortDirection}`}></i>
+                      )}
+                    </th>
+                    <th
+                      onClick={() => handleSort("household.apartmentNumber")}
+                      style={{ cursor: "pointer" }}
                     >
-                      <i className="fas fa-eye"></i>
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-          {filteredPayments.length === 0 && (
-            <Message>Không tìm thấy khoản thanh toán nào</Message>
+                      Căn Hộ{" "}
+                      {sortField === "household.apartmentNumber" && (
+                        <i className={`fas fa-sort-${sortDirection}`}></i>
+                      )}
+                    </th>
+                    <th
+                      onClick={() => handleSort("amount")}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Số Tiền{" "}
+                      {sortField === "amount" && (
+                        <i className={`fas fa-sort-${sortDirection}`}></i>
+                      )}
+                    </th>
+                    <th>Phương thức</th>
+                    <th>Trạng thái</th>
+                    <th
+                      onClick={() => handleSort("paymentDate")}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Ngày thanh toán{" "}
+                      {sortField === "paymentDate" && (
+                        <i className={`fas fa-sort-${sortDirection}`}></i>
+                      )}
+                    </th>
+                    <th>Ghi chú</th>
+                    <th className="text-center">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedAndFilteredPayments.map((payment) => (
+                    <tr key={payment._id}>
+                      <td>
+                        <Link
+                          to={`/payments/${payment._id}`}
+                          className="text-info text-decoration-none"
+                        >
+                          {payment.fee?.name || "N/A"}
+                        </Link>
+                      </td>
+                      <td>
+                        <Link
+                          to={`/households/${payment.household?._id}`}
+                          className="text-info text-decoration-none"
+                        >
+                          {payment.household?.apartmentNumber || "N/A"}
+                        </Link>
+                      </td>
+                      <td>{payment.amount?.toLocaleString()} VND</td>
+                      <td>
+                        <i
+                          className={`fas fa-${
+                            paymentMethods[payment.method]?.icon || "circle"
+                          } me-2`}
+                        ></i>
+                        {paymentMethods[payment.method]?.label ||
+                          payment.method}
+                      </td>
+                      <td>{getStatusBadge(payment.status)}</td>
+                      <td>
+                        {payment.paymentDate ? (
+                          <span
+                            title={new Date(payment.paymentDate).toLocaleString(
+                              "vi-VN"
+                            )}
+                          >
+                            {new Date(payment.paymentDate).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </span>
+                        ) : (
+                          "N/A"
+                        )}
+                      </td>
+                      <td>
+                        {payment.note ? (
+                          <span title={payment.note}>
+                            {payment.note.length > 20
+                              ? `${payment.note.substring(0, 20)}...`
+                              : payment.note}
+                          </span>
+                        ) : (
+                          "N/A"
+                        )}
+                      </td>
+                      <td>
+                        <div className="d-flex justify-content-center gap-2">
+                          <Button
+                            variant="dark"
+                            size="sm"
+                            onClick={() => navigate(`/payments/${payment._id}`)}
+                          >
+                            <i className="fas fa-eye"></i>
+                          </Button>
+                          {isAdmin && payment.status === "paid" && (
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              onClick={() => handleRefund(payment._id)}
+                              title="Hoàn tiền"
+                            >
+                              <i className="fas fa-undo"></i>
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              {sortedAndFilteredPayments.length === 0 && (
+                <div className="text-center py-3">
+                  <Message variant="info">
+                    Không tìm thấy thanh toán nào
+                  </Message>
+                </div>
+              )}
+            </div>
           )}
-        </>
-      )}
-    </>
+        </Card.Body>
+      </Card>
+    </div>
   );
 };
 
-export default PaymentListScreen; 
+export default PaymentListScreen;
